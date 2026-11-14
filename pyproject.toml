@@ -1,0 +1,59 @@
+[project]
+name = "dros_host"
+version = "0.1.0"
+requires-python = "~=3.13.0"
+dependencies = [
+    "python-socketio>=5",
+    "werkzeug>=3",
+    "opencv-python",
+    "pyaudio",
+    "pydantic",
+    "pydantic-ai",
+    "pillow",
+    "cbor2",
+    "pocket-tts",
+    "lark",
+    "torch",
+    "torchvision",
+    "accelerate",
+    "librosa",
+    "scipy",
+    "transformers",
+    "matplotlib",
+    "PyQt6",
+    "ultralytics",
+    "tf-keras",
+    "dros",
+    "opencv-python",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "python-socketio[client]>=5",
+    "ruff",
+    "pyright"
+]
+
+[project.scripts]
+master = "marvin_host.master:main"
+sender = "marvin_host.sender:main"
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+
+[tool.uv.sources]
+dros = { git = "https://github.com/der/dros.git" }

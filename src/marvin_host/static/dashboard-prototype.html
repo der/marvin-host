@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROTOTYPE — Brain Mode Card Variants</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+<style>
+  /* ——— copied dashboard styles (minimal, for context) ——— */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6b7b8d;
+    --accent: #00a86b;
+    --warn: #e74c3c;
+    --orange: #e67e22;
+    --border: #dce1e8;
+    --blue: #3498db;
+    --purple: #9b59b6;
+    --teal: #1abc9c;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    min-height: 100vh;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+  .card-header {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  /* ——— dashboard shell ——— */
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 12px;
+    padding: 14px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .events-panel { grid-column: 1; grid-row: 1 / 4; display: flex; flex-direction: column; }
+  .right-col { grid-column: 2; display: flex; flex-direction: column; gap: 12px; }
+
+  .event-log {
+    flex: 1; min-height: 300px; overflow-y: auto; font-size: 0.85rem;
+  }
+  .event-item {
+    padding: 4px 0; border-bottom: 1px solid var(--border);
+    display: flex; gap: 6px; align-items: baseline;
+  }
+  .event-type {
+    font-weight: 700; font-size: 0.65rem; text-transform: uppercase;
+    flex-shrink: 0; min-width: 50px;
+  }
+  .event-type.brain_mode { color: var(--purple); }
+  .event-msg { line-height: 1.4; }
+
+  /* ——— prototype controls ——— */
+  .proto-controls {
+    display: flex; gap: 8px; align-items: center; padding: 10px 14px;
+    background: var(--card); border-bottom: 1px solid var(--border);
+  }
+  .proto-controls button {
+    padding: 4px 10px; font-size: 0.75rem; border: 1px solid var(--border);
+    background: var(--card); border-radius: 4px; cursor: pointer;
+  }
+  .proto-controls button:active { background: var(--border); }
+  .proto-label {
+    font-size: 0.75rem; color: var(--muted); margin-right: auto;
+  }
+  .proto-label strong { color: var(--text); }
+
+  /* ——— floating variant switcher ——— */
+  .variant-bar {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: #1a1a2e; color: #fff;
+    padding: 8px 20px; border-radius: 24px;
+    font-size: 0.8rem; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    z-index: 1000;
+    user-select: none;
+  }
+  .variant-bar button {
+    background: none; border: none; color: #fff; font-size: 1.1rem;
+    cursor: pointer; padding: 2px 8px; border-radius: 6px;
+    line-height: 1;
+  }
+  .variant-bar button:hover { background: rgba(255,255,255,0.15); }
+  .variant-label { min-width: 160px; text-align: center; }
+
+  /* ================================
+     VARIANT A — status chip
+     ================================ */
+  .vA-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 4px 0;
+  }
+  .vA-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 20px;
+    font-weight: 700; font-size: 0.95rem; text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: background 0.4s, color 0.4s;
+  }
+  .vA-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .vA-dot.asleep  { background: #95a5a6; }
+  .vA-dot.idle    { background: var(--blue); }
+  .vA-dot.listening { background: var(--accent); animation: vA-pulse 1.5s infinite; }
+  .vA-dot.thinking  { background: var(--orange); animation: vA-spin 1s linear infinite; }
+  .vA-dot.speaking  { background: var(--warn); }
+  .vA-dot.working   { background: var(--purple); animation: vA-pulse 1s infinite; }
+
+  .vA-chip.asleep  { background: #ecf0f1; color: #7f8c8d; }
+  .vA-chip.idle    { background: #dbeafe; color: #1e40af; }
+  .vA-chip.listening { background: #d1fae5; color: #047857; }
+  .vA-chip.thinking  { background: #fff7ed; color: #9a3412; }
+  .vA-chip.speaking  { background: #fef2f2; color: #991b1b; }
+  .vA-chip.working   { background: #f5f3ff; color: #5b21b6; }
+
+  @keyframes vA-pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  @keyframes vA-spin { 0%{transform:rotate(0deg)}100%{transform:rotate(360deg)} }
+
+  .vA-time {
+    font-size: 0.65rem; color: var(--muted);
+  }
+
+  /* ================================
+     VARIANT B — state flow diagram
+     ================================ */
+  .vB-flow {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 0.72rem;
+    padding: 4px 0;
+  }
+  .vB-row {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .vB-arrow {
+    color: var(--muted); font-size: 0.65rem; flex-shrink: 0;
+  }
+  .vB-node {
+    padding: 3px 10px; border-radius: 10px;
+    border: 1.5px solid var(--border);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .vB-node.active {
+    border-color: var(--purple);
+    background: #f5f3ff;
+    color: #5b21b6;
+    font-size: 0.8rem;
+    padding: 4px 14px;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.15);
+  }
+
+  /* ================================
+     VARIANT C — animated mood ring
+     ================================ */
+  .vC-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 8px 0 4px;
+  }
+  .vC-ring {
+    width: 90px; height: 90px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #fff;
+    transition: background 0.6s, box-shadow 0.6s, transform 0.3s;
+    position: relative;
+  }
+  .vC-ring.asleep  { background: #95a5a6; box-shadow: 0 0 0 0 rgba(149,165,166,0); transform: scale(0.9); }
+  .vC-ring.idle    { background: var(--blue); box-shadow: 0 0 12px 2px rgba(52,152,219,0.3); }
+  .vC-ring.listening { background: #22c55e; box-shadow: 0 0 24px 6px rgba(34,197,94,0.35); animation: vC-breathe 2s ease-in-out infinite; }
+  .vC-ring.thinking  { background: var(--orange); box-shadow: 0 0 20px 4px rgba(230,126,34,0.4); animation: vC-think 0.8s ease-in-out infinite; }
+  .vC-ring.speaking  { background: var(--warn); box-shadow: 0 0 28px 8px rgba(231,76,60,0.4); animation: vC-speak 0.3s ease-in-out infinite; }
+  .vC-ring.working   { background: var(--purple); box-shadow: 0 0 20px 4px rgba(155,89,182,0.4); animation: vC-work 1.5s ease-in-out infinite; }
+
+  @keyframes vC-breathe { 0%,100%{transform:scale(1)}50%{transform:scale(1.08)} }
+  @keyframes vC-think { 0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.05) rotate(3deg)} }
+  @keyframes vC-speak { 0%,100%{box-shadow:0 0 14px 2px rgba(231,76,60,0.4)}50%{box-shadow:0 0 36px 12px rgba(231,76,60,0.6);transform:scale(1.04)} }
+  @keyframes vC-work { 0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.06);filter:brightness(1.15)} }
+
+  .vC-time {
+    font-size: 0.65rem; color: var(--muted);
+  }
+</style>
+</head>
+<body x-data="prototype()" x-init="init()">
+
+<!-- ——— prototype controls (cycle modes manually + auto mode) ——— -->
+<div class="proto-controls">
+  <span class="proto-label">Simulated brain mode: <strong x-text="simMode"></strong></span>
+  <button @click="prevMode">◀ Prev</button>
+  <button @click="nextMode">Next ▶</button>
+  <button @click="autoCycle = !autoCycle" :style="autoCycle ? 'background:#dbeafe' : ''" x-text="autoCycle ? 'Auto: ON' : 'Auto: OFF'"></button>
+  <span style="font-size:0.65rem;color:var(--muted)" x-text="'Changes: ' + changeCount"></span>
+</div>
+
+<!-- ——— dashboard grid (right-col only — brain mode card) ——— -->
+<div class="grid">
+  <div class="events-panel card">
+    <div class="card-header">Events Log</div>
+    <div class="event-log" x-ref="evtLog">
+      <template x-for="e in events" :key="e.id">
+        <div class="event-item">
+          <span class="event-type" :class="e.type" x-text="e.type"></span>
+          <span class="event-msg" x-text="e.msg"></span>
+        </div>
+      </template>
+      <template x-if="events.length === 0">
+        <div style="color:var(--muted);font-style:italic;padding:20px;text-align:center">No events yet</div>
+      </template>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <!-- === BRAIN MODE CARD === -->
+    <div class="card">
+      <div class="card-header">Brain Mode</div>
+
+      <!-- Variant A: status chip -->
+      <template x-if="variant === 'A'">
+        <div class="vA-wrap">
+          <div class="vA-chip" :class="brainMode">
+            <span class="vA-dot" :class="brainMode"></span>
+            <span x-text="brainMode"></span>
+          </div>
+          <span class="vA-time"
+            x-text="lastChange ? 'since ' + (new Date(lastChange)).toLocaleTimeString() : ''">
+          </span>
+        </div>
+      </template>
+
+      <!-- Variant B: state flow diagram -->
+      <template x-if="variant === 'B'">
+        <div class="vB-flow">
+          <div class="vB-row">
+            <span class="vB-node" :class="{active: brainMode === 'asleep'}">asleep</span>
+            <span class="vB-arrow">→</span>
+            <span class="vB-node" :class="{active: brainMode === 'idle'}">idle</span>
+            <span class="vB-arrow">→</span>
+            <span class="vB-node" :class="{active: brainMode === 'listening'}">listening</span>
+          </div>
+          <div class="vB-row">
+            <span class="vB-node" :class="{active: brainMode === 'working'}">working</span>
+            <span class="vB-arrow">←</span>
+            <span class="vB-node" :class="{active: brainMode === 'speaking'}">speaking</span>
+            <span class="vB-arrow">←</span>
+            <span class="vB-node" :class="{active: brainMode === 'thinking'}">thinking</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Variant C: animated mood ring -->
+      <template x-if="variant === 'C'">
+        <div class="vC-wrap">
+          <div class="vC-ring" :class="brainMode" x-text="brainMode"></div>
+          <span class="vC-time"
+            x-text="lastChange ? 'since ' + (new Date(lastChange)).toLocaleTimeString() : ''">
+          </span>
+        </div>
+      </template>
+    </div>
+
+    <!-- placeholder cards for context -->
+    <div class="card">
+      <div class="card-header">Heading &amp; Distance</div>
+      <div style="padding:10px;color:var(--muted);font-size:0.8rem;text-align:center">(other cards)</div>
+    </div>
+    <div class="card">
+      <div class="card-header">Eyes</div>
+      <div style="padding:10px;color:var(--muted);font-size:0.8rem;text-align:center">(other cards)</div>
+    </div>
+    <div class="card">
+      <div class="card-header">Neck</div>
+      <div style="padding:10px;color:var(--muted);font-size:0.8rem;text-align:center">(other cards)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ——— floating variant switcher ——— -->
+<div class="variant-bar">
+  <button @click="cycleVariant(-1)" aria-label="Previous variant">◀</button>
+  <span class="variant-label">
+    Variant <span x-text="variant"></span>
+    <template x-if="variant === 'A'"> — Status chip</template>
+    <template x-if="variant === 'B'"> — Flow diagram</template>
+    <template x-if="variant === 'C'"> — Mood ring</template>
+  </span>
+  <button @click="cycleVariant(1)" aria-label="Next variant">▶</button>
+</div>
+
+<script>
+  const MODES = ["asleep", "idle", "listening", "thinking", "speaking", "working"];
+  const VARIANTS = ["A", "B", "C"];
+
+  function prototype() {
+    return {
+      brainMode: "asleep",
+      lastChange: null,
+      changeCount: 0,
+      simMode: "asleep",
+      autoCycle: true,
+      events: [],
+      variant: "A",
+
+      init() {
+        const p = new URLSearchParams(window.location.search);
+        const v = p.get("variant");
+        if (v && VARIANTS.includes(v.toUpperCase())) {
+          this.variant = v.toUpperCase();
+        }
+
+        window.addEventListener("popstate", () => {
+          const p2 = new URLSearchParams(window.location.search);
+          const v2 = p2.get("variant");
+          if (v2 && VARIANTS.includes(v2.toUpperCase())) {
+            this.variant = v2.toUpperCase();
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
+          if (e.key === "ArrowLeft") this.cycleVariant(-1);
+          if (e.key === "ArrowRight") this.cycleVariant(1);
+        });
+
+        this.fireEvent(this.brainMode);
+        this.lastChange = Date.now();
+
+        setInterval(() => {
+          if (!this.autoCycle) return;
+          this.nextMode();
+        }, 2500);
+      },
+
+      cycleVariant(dir) {
+        const idx = VARIANTS.indexOf(this.variant);
+        const next = VARIANTS[(idx + dir + VARIANTS.length) % VARIANTS.length];
+        this.variant = next;
+        const url = new URL(window.location);
+        url.searchParams.set("variant", next);
+        window.history.replaceState({}, "", url);
+      },
+
+      prevMode() {
+        const idx = MODES.indexOf(this.simMode);
+        this.simMode = MODES[(idx - 1 + MODES.length) % MODES.length];
+        this.applyMode();
+      },
+
+      nextMode() {
+        const idx = MODES.indexOf(this.simMode);
+        this.simMode = MODES[(idx + 1) % MODES.length];
+        this.applyMode();
+      },
+
+      applyMode() {
+        this.brainMode = this.simMode;
+        this.lastChange = Date.now();
+        this.changeCount++;
+        this.fireEvent(this.brainMode);
+      },
+
+      fireEvent(mode) {
+        this.events.push({
+          id: Date.now(),
+          type: "brain_mode",
+          msg: mode,
+        });
+        this.$nextTick(() => {
+          const log = this.$refs.evtLog;
+          if (log) log.scrollTop = log.scrollHeight;
+        });
+      },
+    };
+  }
+</script>
+</body>
+</html>
